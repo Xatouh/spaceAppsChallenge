@@ -4,64 +4,154 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Estrategias Verdes — Detalle</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <style>
-    body { font-family: Arial, Helvetica, sans-serif; margin: 1rem; color:#333; }
-    h1 { color:#2c5530; }
+    body { font-family: Arial, Helvetica, sans-serif; margin: 1rem; color:#333; background:#f6f8fa; }
+    h1 { color:#2c5530; margin-bottom:0.25rem; }
     .card { border:1px solid #e6e6e6; padding:1rem; border-radius:8px; margin-bottom:1rem; background:#fff; box-shadow:0 2px 8px rgba(0,0,0,0.06); }
     .back { display:inline-block; margin-bottom:1rem; color:#2c5530; text-decoration:none; }
+    #map { width:100%; height:420px; border-radius:8px; box-shadow:0 2px 8px rgba(0,0,0,0.08); margin-bottom:1rem; }
+    .points-list { display:flex; flex-direction:column; gap:0.5rem; }
+    .point { background:#fff; padding:0.5rem; border-radius:6px; border:1px solid #eee; }
   </style>
 </head>
 <body>
   <a class="back" href="index.html">← Volver al mapa</a>
-  <h1>Estrategias Verdes — Detalle</h1>
+  <h1 id="title">Estrategia</h1>
+
   <div id="content">
-    <div class="card" data-key="Plantación de Árboles">
-      <h2>Plantación de Árboles</h2>
-      <p>Ideal cuando hay espacio en suelo (parques, avenidas, plazas). Aporta sombra duradera, captación de CO₂ y reducción de temperatura a mediano-largo plazo. Recomendado en zonas con vegetación baja y disponibilidad de terreno.</p>
-      <p><strong>Útil cuando:</strong> espacio a nivel de calle, baja cobertura vegetal, buena capacidad de mantenimiento.</p>
+    <div class="card" id="description">
+      <!-- descripción dinámica -->
     </div>
 
-    <div class="card" data-key="Jardín Vertical">
-      <h2>Jardín Vertical</h2>
-      <p>Solución para entornos densos donde falta espacio en suelo. Mejora aislamiento térmico de fachadas, filtra contaminantes y aporta biodiversidad en vertical. Recomendado en centro urbano y fachadas expuestas al sol.</p>
-      <p><strong>Útil cuando:</strong> espacio en suelo limitado, alta densidad poblacional, necesidad de mejorar calidad del aire local.</p>
+    <div class="card" id="map-card" style="display:none;">
+      <h3>Mapa de la zona — ubicaciones sugeridas</h3>
+      <div id="map"></div>
+      <div class="points-list" id="points-list"></div>
     </div>
 
-    <div class="card" data-key="Tejado Verde">
-      <h2>Tejado Verde</h2>
-      <p>Cubiertas ajardinadas en edificios que reducen la temperatura superficial, retienen agua de lluvia y mejoran aislamiento. Adecuado en zonas con muchos edificios y disponibilidad de cubiertas seguras para instalación.</p>
-      <p><strong>Útil cuando:</strong> edificios con cubiertas accesibles/estructuralmente aptas, objetivo de mitigación térmica y retención hídrica.</p>
-    </div>
-
-    <div class="card" data-key="Toldo Verde">
-      <h2>Toldo Verde</h2>
-      <p>Sistemas modulares (mallado, pérgolas con vegetación) que generan sombra rápida y son útiles en calles y plazas. Solución de rápida implementación para mitigar radiación directa y crear áreas de confort.</p>
-      <p><strong>Útil cuando:</strong> necesidad de sombra inmediata en espacios peatonales, falta de espacio en suelo y soluciones temporales o modulares.</p>
+    <div class="card" id="extras" style="display:none;">
+      <h3>Acciones recomendadas</h3>
+      <ul id="actions"></ul>
     </div>
   </div>
 
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script>
-    // Muestra la tarjeta relevante si se pasa ?strategy=...
-    (function() {
+    // Helpers
+    function getParam(name) {
       const params = new URLSearchParams(location.search);
-      const strat = params.get('strategy');
-      if (!strat) return;
-      const decoded = decodeURIComponent(strat);
-      const cards = document.querySelectorAll('.card');
-      let found = false;
-      cards.forEach(c => {
-        if (c.getAttribute('data-key').toLowerCase() === decoded.toLowerCase()) {
-          // mostrar solo esa
-          cards.forEach(x => x.style.display = 'none');
-          c.style.display = 'block';
-          found = true;
-        } else {
-          c.style.display = 'none';
-        }
-      });
-      if (!found) {
-        // si no coincide, mostrar todas
-        cards.forEach(x => x.style.display = 'block');
+      return params.get(name);
+    }
+
+    // Deterministic RNG (mulberry32) para reproducir puntos cuando la misma zona se manda
+    function mulberry32(a) {
+      return function() {
+        let t = a += 0x6D2B79F5;
+        t = Math.imul(t ^ (t >>> 15), t | 1);
+        t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+        return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+      }
+    }
+
+    // Generar N puntos aleatorios dentro de radio (metros) alrededor de lat/lng
+    function randomPointsAround(lat, lng, n, radiusMeters, seed) {
+      const rnd = mulberry32(seed || Math.floor((lat + lng) * 100000));
+      const points = [];
+      for (let i=0;i<n;i++) {
+        const r = radiusMeters * Math.sqrt(rnd());
+        const theta = rnd() * 2 * Math.PI;
+        // desplazamiento aproximado (en grados)
+        const dx = r * Math.cos(theta) / 111320; // lon degree ~111.32km
+        const dy = r * Math.sin(theta) / 110540; // lat degree ~110.54km
+        points.push({ lat: lat + dy, lng: lng + dx });
+      }
+      return points;
+    }
+
+    // Contenido base para cada estrategia
+    const STRATEGY_INFO = {
+      'Plantación de Árboles': {
+        title: 'Plantación de Árboles',
+        text: 'Ideal cuando hay espacio en suelo. Sombra duradera, captura de CO₂ y reducción de temperatura a mediano-largo plazo.',
+        actions: ['Seleccionar especies nativas/adecuadas al clima', 'Asegurar espacio mínimo y sistema de riego', 'Plan de mantenimiento 3-5 años']
+      },
+      'Jardín Vertical': {
+        title: 'Jardín Vertical',
+        text: 'Solución para entornos densos sin espacio en suelo. Mejora aislamiento térmico y filtra contaminantes a nivel de fachada.',
+        actions: ['Evaluar fachadas resistentes y exposición solar', 'Elegir sistemas modulares de bajo peso', 'Plan de riego/filtración']
+      },
+      'Tejado Verde': {
+        title: 'Tejado Verde',
+        text: 'Cubiertas ajardinadas en edificios que reducen temperatura superficial y retienen agua de lluvia.',
+        actions: ['Comprobar capacidad estructural de la cubierta', 'Diseño de sustrato y drenaje', 'Mantenimiento e inspección periódica']
+      },
+      'Toldo Verde': {
+        title: 'Toldo Verde',
+        text: 'Pérgolas y toldos vegetados para sombra rápida en calles y plazas. Implementación modular y rápida.',
+        actions: ['Instalación modular en plazas/paseos', 'Uso de especies trepadoras de rápido crecimiento', 'Mantenimiento ligero anual']
+      }
+    };
+
+    (function init() {
+      const strat = getParam('strategy');
+      const latParam = parseFloat(getParam('lat'));
+      const lngParam = parseFloat(getParam('lng'));
+      const lat = Number.isFinite(latParam) ? latParam : null;
+      const lng = Number.isFinite(lngParam) ? lngParam : null;
+
+      const titleEl = document.getElementById('title');
+      const descEl = document.getElementById('description');
+      const mapCard = document.getElementById('map-card');
+      const extras = document.getElementById('extras');
+      const actionsList = document.getElementById('actions');
+      const pointsList = document.getElementById('points-list');
+
+      const key = strat ? decodeURIComponent(strat) : null;
+      const info = STRATEGY_INFO[key] || {
+        title: key || 'Estrategia',
+        text: 'Descripción no disponible. Selecciona otra estrategia.',
+        actions: []
+      };
+
+      titleEl.textContent = info.title;
+      descEl.innerHTML = `<p>${info.text}</p>`;
+
+      // mostrar acciones
+      if (info.actions && info.actions.length) {
+        extras.style.display = 'block';
+        actionsList.innerHTML = info.actions.map(a => `<li>${a}</li>`).join('');
+      }
+
+      // si vienen coordenadas, mostrar mapa y puntos sugeridos
+      if (lat !== null && lng !== null) {
+        mapCard.style.display = 'block';
+        const map = L.map('map').setView([lat, lng], 15);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+          attribution: '© OpenStreetMap contributors'
+        }).addTo(map);
+
+        // círculo de área de intervención
+        const areaRadius = 300; // metros
+        L.circle([lat, lng], { radius: areaRadius, color:'#2c5530', weight:2, fillOpacity:0.05 }).addTo(map);
+
+        // generar puntos sugeridos (5) y listarlos
+        const points = randomPointsAround(lat, lng, 5, areaRadius * 0.9, Math.floor((lat + lng) * 10000));
+        points.forEach((p, i) => {
+          const marker = L.marker([p.lat, p.lng]).addTo(map);
+          const speciesSample = (key === 'Plantación de Árboles') ? ['Quercus ilex','Platanus x hispanica','Pistacia lentiscus'][i%3]
+                              : (key === 'Jardín Vertical') ? ['Sedum','Hedera helix','Lavandula'][i%3]
+                              : (key === 'Tejado Verde') ? ['Festuca','Sedum','Native mix'][i%3]
+                              : ['Trellis vine','Trachelospermum','Bougainvillea'][i%3];
+          marker.bindPopup(`<strong>Sitio sugerido ${i+1}</strong><br>Especie sugerida: ${speciesSample}<br>Notas: evaluar accesos y sombra.`);
+
+          // lista textual
+          pointsList.insertAdjacentHTML('beforeend', `<div class="point"><strong>Sitio ${i+1}:</strong> ${p.lat.toFixed(5)}, ${p.lng.toFixed(5)} — <em>${speciesSample}</em></div>`);
+        });
+
+        // ajustar vista para incluir todos los puntos
+        const group = L.featureGroup(points.map(p => L.marker([p.lat, p.lng])));
+        map.fitBounds(group.getBounds().pad(0.6));
       }
     })();
   </script>

@@ -384,12 +384,20 @@ class UrbanTreePlanner {
 
     let html = '';
     recommendations.slice(0, 3).forEach((rec, index) => {
+      const zone = rec.zone;
+      // crear enlaces para cada estrategia con lat/lng
+      const strategies = this.getRecommendedSpecies(zone).split(',').map(s => s.trim()).filter(Boolean);
+      const strategiesLinks = strategies.map(s => {
+        const href = `strategies.html?strategy=${encodeURIComponent(s)}&lat=${zone.lat}&lng=${zone.lng}`;
+        return `<a class="strategy-link" href="${href}" target="_blank" rel="noopener">${s}</a>`;
+      }).join(', ');
+
       html += `
         <div class="recommendation-item priority-${rec.priority}">
           <h4>Zona ${index + 1} - Prioridad ${rec.priority === 'high' ? 'Alta' : rec.priority === 'medium' ? 'Media' : 'Baja'}</h4>
           <p><strong>Puntuación:</strong> ${rec.score}/100</p>
           <p><strong>Razones:</strong> ${rec.reason}</p>
-          <p><strong>Estrategia Recomendada:</strong> ${this.getRecommendedSpecies(rec.zone)}</p>
+          <p><strong>Estrategia Recomendada:</strong> ${strategiesLinks}</p>
         </div>
       `;
     });
@@ -510,8 +518,11 @@ class UrbanTreePlanner {
   showRecommendedZones(recommendations) {
     // Limpiar zonas recomendadas anteriores
     this.clearLayer('recommendations');
-    
-    recommendations.slice(0, 3).forEach(rec => {
+
+    const container = document.getElementById('recommendations-content');
+    if (container) container.innerHTML = '';
+
+    recommendations.slice(0, 3).forEach((rec, idx) => {
       const zone = rec.zone;
       const color = rec.priority === 'high' ? '#dc3545' : rec.priority === 'medium' ? '#fd7e14' : '#28a745';
       
@@ -526,18 +537,38 @@ class UrbanTreePlanner {
 
       // obtener estrategias recomendadas como array
       const strategies = this.getRecommendedSpecies(zone).split(',').map(s => s.trim()).filter(Boolean);
+      // crear enlaces seguros para cada estrategia incluyendo lat/lng
+      const strategiesLinks = strategies.map(s => {
+        const href = `strategies.html?strategy=${encodeURIComponent(s)}&lat=${zone.lat}&lng=${zone.lng}`;
+        return `<a class="strategy-link" href="${href}" target="_blank" rel="noopener">${s}</a>`;
+      }).join(', ');
+
+      // popup en el mapa con botón "Ver más" (lleva a la estrategia primaria con coordenadas)
       const primary = strategies[0] || '';
-      const url = primary ? `strategies.html?strategy=${encodeURIComponent(primary)}` : 'strategies.html';
+      const primaryUrl = primary ? `strategies.html?strategy=${encodeURIComponent(primary)}&lat=${zone.lat}&lng=${zone.lng}` : `strategies.html?lat=${zone.lat}&lng=${zone.lng}`;
 
       circle.bindPopup(`
         <strong>Zona Recomendada</strong><br>
         Prioridad: ${rec.priority === 'high' ? 'Alta' : rec.priority === 'medium' ? 'Media' : 'Baja'}<br>
         Puntuación: ${rec.score}/100<br>
-        Estrategia: ${strategies.join(', ')}<br><br>
-        <a href="${url}" target="_blank" rel="noopener" style="display:inline-block;padding:6px 10px;background:#2c5530;color:#fff;border-radius:6px;text-decoration:none;">Ver más</a>
+        Estrategia(s): ${strategies.join(', ')}<br><br>
+        <a href="${primaryUrl}" target="_blank" rel="noopener" style="display:inline-block;padding:6px 10px;background:#2c5530;color:#fff;border-radius:6px;text-decoration:none;">Ver más</a>
       `);
 
       this.markers.push(circle);
+
+      // Añadir tarjeta en el panel de recomendaciones (clickable links)
+      if (container) {
+        const card = document.createElement('div');
+        card.className = 'recommendation-item ' + (rec.priority === 'high' ? 'priority-high' : rec.priority === 'medium' ? 'priority-medium' : 'priority-low');
+        card.innerHTML = `
+          <h4>${idx + 1}. Zona Recomendada — ${rec.priority === 'high' ? 'Alta' : rec.priority === 'medium' ? 'Media' : 'Baja'}</h4>
+          <p>Puntuación: ${rec.score}/100</p>
+          <p><strong>Estrategia(s):</strong> ${strategiesLinks}</p>
+          <p><a class="report-button" href="${primaryUrl}" target="_blank" rel="noopener" style="display:inline-block;padding:8px 12px;border-radius:6px;color:#fff;background:#2c5530;text-decoration:none;margin-top:6px;">Ver más</a></p>
+        `;
+        container.appendChild(card);
+      }
     });
   }
 
