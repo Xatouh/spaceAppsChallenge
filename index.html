@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sistema de Planificación de Árboles Urbanos</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div id="app">
+    <header class="header">
+      <h1>Sistema de Planificación de Árboles Urbanos</h1>
+      <p>Optimización de plantación basada en datos satelitales</p>
+    </header>
+
+    <main class="main-container">
+      <aside class="sidebar">
+        <div class="control-panel">
+          <h2>Panel de Control</h2>
+          
+          <div class="city-selector">
+            <label for="city-select">Seleccionar Ciudad:</label>
+            <select id="city-select">
+              <option value="madrid">Madrid, España</option>
+              <option value="barcelona">Barcelona, España</option>
+              <option value="bogota">Bogotá, Colombia</option>
+              <option value="mexico">Ciudad de México</option>
+              <option value="lima">Lima, Perú</option>
+            </select>
+          </div>
+
+          <div class="data-layers">
+            <h3>Capas de Datos</h3>
+            <div class="layer-controls">
+              <label class="layer-toggle">
+                <input type="checkbox" id="temperature-layer" checked>
+                <span>Temperatura</span>
+              </label>
+              <label class="layer-toggle">
+                <input type="checkbox" id="vegetation-layer" checked>
+                <span>Vegetación</span>
+              </label>
+              <label class="layer-toggle">
+                <input type="checkbox" id="population-layer">
+                <span>Densidad Poblacional</span>
+              </label>
+              <label class="layer-toggle">
+                <input type="checkbox" id="air-quality-layer">
+                <span>Calidad del Aire</span>
+              </label>
+            </div>
+          </div>
+
+          <div class="analysis-controls">
+            <h3>Análisis</h3>
+            <button id="analyze-btn" class="analyze-button">Analizar Zona Óptima</button>
+            <button id="generate-report-btn" class="report-button">Generar Reporte</button>
+          </div>
+
+          <div class="metrics-panel">
+            <h3>Métricas Actuales</h3>
+            <div class="metric">
+              <span class="metric-label">Temperatura Promedio:</span>
+              <span id="avg-temperature" class="metric-value">28.5°C</span>
+            </div>
+            <div class="metric">
+              <span class="metric-label">Cobertura Vegetal:</span>
+              <span id="vegetation-coverage" class="metric-value">23%</span>
+            </div>
+            <div class="metric">
+              <span class="metric-label">Calidad del Aire:</span>
+              <span id="air-quality-index" class="metric-value">Moderada</span>
+            </div>
+          </div>
+        </div>
+      </aside>
+
+      <section class="map-container">
+        <div id="map"></div>
+        <div class="map-legend">
+          <h4>Leyenda</h4>
+          <div class="legend-item">
+            <div class="legend-color temperature-high"></div>
+            <span>Alta Temperatura (>30°C)</span>
+          </div>
+          <div class="legend-item">
+            <div class="legend-color temperature-medium"></div>
+            <span>Temperatura Media (25-30°C)</span>
+          </div>
+          <div class="legend-item">
+            <div class="legend-color temperature-low"></div>
+            <span>Baja Temperatura (25°C)</span>
+          </div>
+          <div class="legend-item">
+            <div class="legend-color vegetation-high"></div>
+            <span>Alta Vegetación</span>
+          </div>
+          <div class="legend-item">
+            <div class="legend-color recommended-zone"></div>
+            <span>Zona Recomendada</span>
+          </div>
+        </div>
+      </section>
+
+      <section class="recommendations-panel">
+        <h2>Recomendaciones de Plantación</h2>
+        <div id="recommendations-content">
+          <p>Selecciona "Analizar Zona Óptima" para obtener recomendaciones específicas.</p>
+        </div>
+      </section>
+    </main>
+
+    <div id="report-modal" class="modal">
+      <div class="modal-content">
+        <span class="close">&times;</span>
+        <h2>Reporte de Análisis</h2>
+        <div id="report-content"></div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script type="module" src="main.js"></script>
+</body>
+</html>
