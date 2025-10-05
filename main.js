@@ -110,6 +110,15 @@ class UrbanTreePlanner {
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       attribution: '© OpenStreetMap contributors'
     }).addTo(this.map);
+
+    // Inicializar layerGroups (no añadidos al mapa hasta que se activen)
+    this.layers = {
+      temperature: L.layerGroup(),
+      vegetation: L.layerGroup(),
+      population: L.layerGroup(),
+      airQuality: L.layerGroup(),
+      recommendations: L.layerGroup()
+    };
   }
 
   bindEvents() {
@@ -196,7 +205,9 @@ class UrbanTreePlanner {
 
   loadTemperatureLayer(city) {
     this.clearLayer('temperature');
-    
+    // asegurar que el layerGroup esté en el mapa
+    this.map.addLayer(this.layers.temperature);
+
     city.zones.forEach(zone => {
       const color = this.getTemperatureColor(zone.temp);
       const circle = L.circle([zone.lat, zone.lng], {
@@ -204,7 +215,7 @@ class UrbanTreePlanner {
         fillColor: color,
         fillOpacity: 0.6,
         radius: 800
-      }).addTo(this.map);
+      });
 
       circle.bindPopup(`
         <strong>Temperatura: ${zone.temp}°C</strong><br>
@@ -212,13 +223,14 @@ class UrbanTreePlanner {
         Población: ${zone.population}/km²
       `);
 
-      this.markers.push(circle);
+      this.layers.temperature.addLayer(circle);
     });
   }
 
   loadVegetationLayer(city) {
     this.clearLayer('vegetation');
-    
+    this.map.addLayer(this.layers.vegetation);
+
     city.zones.forEach(zone => {
       const color = this.getVegetationColor(zone.vegetation);
       const circle = L.circle([zone.lat, zone.lng], {
@@ -226,7 +238,7 @@ class UrbanTreePlanner {
         fillColor: color,
         fillOpacity: 0.4,
         radius: 600
-      }).addTo(this.map);
+      });
 
       circle.bindPopup(`
         <strong>Vegetación: ${zone.vegetation}%</strong><br>
@@ -234,13 +246,14 @@ class UrbanTreePlanner {
         Calidad del aire: ${zone.airQuality} AQI
       `);
 
-      this.markers.push(circle);
+      this.layers.vegetation.addLayer(circle);
     });
   }
 
   loadPopulationLayer(city) {
     this.clearLayer('population');
-    
+    this.map.addLayer(this.layers.population);
+
     city.zones.forEach(zone => {
       const size = this.getPopulationSize(zone.population);
       const circle = L.circle([zone.lat, zone.lng], {
@@ -248,7 +261,7 @@ class UrbanTreePlanner {
         fillColor: '#6c757d',
         fillOpacity: 0.3,
         radius: size
-      }).addTo(this.map);
+      });
 
       circle.bindPopup(`
         <strong>Densidad: ${zone.population}/km²</strong><br>
@@ -256,13 +269,14 @@ class UrbanTreePlanner {
         Vegetación: ${zone.vegetation}%
       `);
 
-      this.markers.push(circle);
+      this.layers.population.addLayer(circle);
     });
   }
 
   loadAirQualityLayer(city) {
     this.clearLayer('airQuality');
-    
+    this.map.addLayer(this.layers.airQuality);
+
     city.zones.forEach(zone => {
       const color = this.getAirQualityColor(zone.airQuality);
       const circle = L.circle([zone.lat, zone.lng], {
@@ -270,7 +284,7 @@ class UrbanTreePlanner {
         fillColor: color,
         fillOpacity: 0.5,
         radius: 700
-      }).addTo(this.map);
+      });
 
       circle.bindPopup(`
         <strong>Calidad del Aire: ${zone.airQuality} AQI</strong><br>
@@ -278,7 +292,7 @@ class UrbanTreePlanner {
         Vegetación: ${zone.vegetation}%
       `);
 
-      this.markers.push(circle);
+      this.layers.airQuality.addLayer(circle);
     });
   }
 
@@ -305,6 +319,9 @@ class UrbanTreePlanner {
   }
 
   analyzeOptimalZones() {
+    // limpiar todo lo dibujado antes de ejecutar un nuevo análisis
+    this.clearAllOverlays();
+
     const city = cityData[this.currentCity];
     const recommendations = this.calculateRecommendations(city);
     
@@ -518,6 +535,8 @@ class UrbanTreePlanner {
   showRecommendedZones(recommendations) {
     // Limpiar zonas recomendadas anteriores
     this.clearLayer('recommendations');
+    // asegurar que el grupo de recomendaciones esté visible
+    this.map.addLayer(this.layers.recommendations);
 
     const container = document.getElementById('recommendations-content');
     if (container) container.innerHTML = '';
@@ -533,7 +552,13 @@ class UrbanTreePlanner {
         radius: 1000,
         weight: 3,
         dashArray: '10, 10'
-      }).addTo(this.map);
+      });
+      
+      // añadir al layerGroup (no directo al mapa)
+      this.layers.recommendations.addLayer(circle);
+
+      // guardar referencia para compatibilidad (si es necesario)
+      this.markers.push(circle);
 
       // obtener estrategias recomendadas como array
       const strategies = this.getRecommendedSpecies(zone).split(',').map(s => s.trim()).filter(Boolean);
@@ -555,8 +580,8 @@ class UrbanTreePlanner {
         <a href="${primaryUrl}" target="_blank" rel="noopener" style="display:inline-block;padding:6px 10px;background:#2c5530;color:#fff;border-radius:6px;text-decoration:none;">Ver más</a>
       `);
 
-      this.markers.push(circle);
-
+      // (el marker ya está en el layerGroup y en this.markers)
+      
       // Añadir tarjeta en el panel de recomendaciones (clickable links)
       if (container) {
         const card = document.createElement('div');
@@ -630,16 +655,34 @@ class UrbanTreePlanner {
     document.getElementById('report-modal').style.display = 'block';
   }
 
-  clearMarkers() {
-    this.markers.forEach(marker => {
-      this.map.removeLayer(marker);
+  // limpiado completo de overlays y markers
+  clearAllOverlays() {
+    if (!this.layers) return;
+    Object.keys(this.layers).forEach(k => {
+      try {
+        this.layers[k].clearLayers();
+        if (this.map && this.map.hasLayer(this.layers[k])) this.map.removeLayer(this.layers[k]);
+      } catch (e) { /* ignore */ }
     });
     this.markers = [];
   }
-
+  
   clearLayer(layerType) {
-    // Esta función se puede expandir para manejar capas específicas
-    // Por ahora, limpiamos todos los marcadores cuando se desactiva una capa
+    if (!this.layers || !this.layers[layerType]) return;
+    try {
+      this.layers[layerType].clearLayers();
+      if (this.map && this.map.hasLayer(this.layers[layerType])) {
+        this.map.removeLayer(this.layers[layerType]);
+      }
+    } catch (e) {
+      // no bloquear en caso de error
+      console.warn('clearLayer error', layerType, e);
+    }
+  }
+
+  clearMarkers() {
+    // mantener compatibilidad: limpiar arrays y layers
+    this.clearAllOverlays();
   }
 
   getTemperatureColor(temp) {
