@@ -398,21 +398,113 @@ class UrbanTreePlanner {
   }
 
   getRecommendedSpecies(zone) {
-    const species = [];
-    
+    // Estrategias posibles y puntuación inicial
+    const strategies = {
+      'Plantación de Árboles': 0,
+      'Jardín Vertical': 0,
+      'Tejado Verde': 0,
+      'Toldo Verde': 0
+    };
+
+    // Normalizar AQI si viene como texto
+    let aqi = zone.airQuality;
+    if (typeof aqi === 'string') {
+      const map = { 'mala': 90, 'moderada': 75, 'buena': 50, 'bueno': 50 };
+      aqi = map[aqi.toLowerCase()] ?? 75;
+    }
+
+    // Determinar disponibilidad de espacio: usar zone.availableSpace si existe,
+    // si no, inferir desde población y cobertura vegetal
+    let space = (zone.availableSpace || '').toString().toLowerCase();
+    if (!space) {
+      if (zone.population > 9000 && zone.vegetation < 25) space = 'low';
+      else if (zone.population > 7000 && zone.vegetation < 35) space = 'medium';
+      else space = 'high';
+    }
+
+    // Helper para sumar puntos
+    const add = (k, v) => { strategies[k] = (strategies[k] || 0) + v; };
+
+    // Reglas por temperatura (mayor calor favorece soluciones que mitigen radiación inmediata)
     if (zone.temp > 30) {
-      species.push('Jardin Vertical', 'Ceiba');
+      add('Jardín Vertical', 28);
+      add('Toldo Verde', 24);
+      add('Tejado Verde', 20);
+      add('Plantación de Árboles', space === 'high' ? 18 : 6);
     } else if (zone.temp > 25) {
-      species.push('Roble', 'Arce');
+      add('Plantación de Árboles', space === 'high' ? 20 : 10);
+      add('Toldo Verde', 14);
+      add('Jardín Vertical', 10);
     } else {
-      species.push('Pino', 'Abeto');
+      add('Plantación de Árboles', space === 'high' ? 12 : 5);
+      add('Tejado Verde', 8);
     }
-    
-    if (zone.airQuality > 80) {
-      species.push('Tilo', 'Fresno');
+
+    // Reglas por cobertura vegetal (si es baja, se necesita aumentar cobertura;
+    // si no hay espacio en suelo, priorizar vertical/tejado)
+    if (zone.vegetation < 20) {
+      if (space === 'low') {
+        add('Jardín Vertical', 30);
+        add('Toldo Verde', 20);
+        add('Tejado Verde', 18);
+        add('Plantación de Árboles', -15);
+      } else if (space === 'medium') {
+        add('Plantación de Árboles', 18);
+        add('Jardín Vertical', 18);
+        add('Tejado Verde', 12);
+      } else { // high
+        add('Plantación de Árboles', 30);
+        add('Jardín Vertical', 15);
+        add('Tejado Verde', 12);
+      }
+    } else if (zone.vegetation < 35) {
+      add('Plantación de Árboles', 12);
+      add('Jardín Vertical', 10);
     }
-    
-    return species.slice(0, 3).join(', ');
+
+    // Reglas por densidad poblacional (en zonas muy densas, sombra inmediata y soluciones modulares)
+    if (zone.population > 9000) {
+      if (space === 'high') {
+        add('Plantación de Árboles', 22);
+        add('Toldo Verde', 18);
+      } else {
+        add('Toldo Verde', 22);
+        add('Jardín Vertical', 18);
+      }
+    } else if (zone.population > 7000) {
+      add('Plantación de Árboles', space === 'high' ? 15 : 8);
+      add('Toldo Verde', 10);
+    }
+
+    // Reglas por calidad del aire (vegetación en suelo y vertical mejora filtrado)
+    if (aqi > 85) {
+      add('Plantación de Árboles', 26);
+      add('Jardín Vertical', 20);
+    } else if (aqi > 70) {
+      add('Plantación de Árboles', 14);
+      add('Jardín Vertical', 10);
+    }
+
+    // Heurística final: si hay muy poco espacio, penalizar plantaciones en suelo
+    if (space === 'low') {
+      add('Plantación de Árboles', -20);
+      add('Jardín Vertical', 10);
+      add('Toldo Verde', 10);
+    } else if (space === 'medium') {
+      add('Plantación de Árboles', -5);
+    } else { // high
+      add('Plantación de Árboles', 12);
+    }
+
+    // Evitar puntuaciones negativas y normalizar
+    Object.keys(strategies).forEach(k => { if (strategies[k] < 0) strategies[k] = 0; });
+
+    // Ordenar y devolver las 3 estrategias mejor puntuadas
+    const ordered = Object.entries(strategies)
+      .sort((a, b) => b[1] - a[1])
+      .map(([name]) => name);
+
+    return ordered.slice(0, 3).join(', ');
   }
 
   showRecommendedZones(recommendations) {
@@ -432,11 +524,17 @@ class UrbanTreePlanner {
         dashArray: '10, 10'
       }).addTo(this.map);
 
+      // obtener estrategias recomendadas como array
+      const strategies = this.getRecommendedSpecies(zone).split(',').map(s => s.trim()).filter(Boolean);
+      const primary = strategies[0] || '';
+      const url = primary ? `strategies.html?strategy=${encodeURIComponent(primary)}` : 'strategies.html';
+
       circle.bindPopup(`
         <strong>Zona Recomendada</strong><br>
         Prioridad: ${rec.priority === 'high' ? 'Alta' : rec.priority === 'medium' ? 'Media' : 'Baja'}<br>
         Puntuación: ${rec.score}/100<br>
-        Especies: ${this.getRecommendedSpecies(zone)}
+        Estrategia: ${strategies.join(', ')}<br><br>
+        <a href="${url}" target="_blank" rel="noopener" style="display:inline-block;padding:6px 10px;background:#2c5530;color:#fff;border-radius:6px;text-decoration:none;">Ver más</a>
       `);
 
       this.markers.push(circle);

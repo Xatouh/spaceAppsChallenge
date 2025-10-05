@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Estrategias Verdes — Detalle</title>
+  <style>
+    body { font-family: Arial, Helvetica, sans-serif; margin: 1rem; color:#333; }
+    h1 { color:#2c5530; }
+    .card { border:1px solid #e6e6e6; padding:1rem; border-radius:8px; margin-bottom:1rem; background:#fff; box-shadow:0 2px 8px rgba(0,0,0,0.06); }
+    .back { display:inline-block; margin-bottom:1rem; color:#2c5530; text-decoration:none; }
+  </style>
+</head>
+<body>
+  <a class="back" href="index.html">← Volver al mapa</a>
+  <h1>Estrategias Verdes — Detalle</h1>
+  <div id="content">
+    <div class="card" data-key="Plantación de Árboles">
+      <h2>Plantación de Árboles</h2>
+      <p>Ideal cuando hay espacio en suelo (parques, avenidas, plazas). Aporta sombra duradera, captación de CO₂ y reducción de temperatura a mediano-largo plazo. Recomendado en zonas con vegetación baja y disponibilidad de terreno.</p>
+      <p><strong>Útil cuando:</strong> espacio a nivel de calle, baja cobertura vegetal, buena capacidad de mantenimiento.</p>
+    </div>
+
+    <div class="card" data-key="Jardín Vertical">
+      <h2>Jardín Vertical</h2>
+      <p>Solución para entornos densos donde falta espacio en suelo. Mejora aislamiento térmico de fachadas, filtra contaminantes y aporta biodiversidad en vertical. Recomendado en centro urbano y fachadas expuestas al sol.</p>
+      <p><strong>Útil cuando:</strong> espacio en suelo limitado, alta densidad poblacional, necesidad de mejorar calidad del aire local.</p>
+    </div>
+
+    <div class="card" data-key="Tejado Verde">
+      <h2>Tejado Verde</h2>
+      <p>Cubiertas ajardinadas en edificios que reducen la temperatura superficial, retienen agua de lluvia y mejoran aislamiento. Adecuado en zonas con muchos edificios y disponibilidad de cubiertas seguras para instalación.</p>
+      <p><strong>Útil cuando:</strong> edificios con cubiertas accesibles/estructuralmente aptas, objetivo de mitigación térmica y retención hídrica.</p>
+    </div>
+
+    <div class="card" data-key="Toldo Verde">
+      <h2>Toldo Verde</h2>
+      <p>Sistemas modulares (mallado, pérgolas con vegetación) que generan sombra rápida y son útiles en calles y plazas. Solución de rápida implementación para mitigar radiación directa y crear áreas de confort.</p>
+      <p><strong>Útil cuando:</strong> necesidad de sombra inmediata en espacios peatonales, falta de espacio en suelo y soluciones temporales o modulares.</p>
+    </div>
+  </div>
+
+  <script>
+    // Muestra la tarjeta relevante si se pasa ?strategy=...
+    (function() {
+      const params = new URLSearchParams(location.search);
+      const strat = params.get('strategy');
+      if (!strat) return;
+      const decoded = decodeURIComponent(strat);
+      const cards = document.querySelectorAll('.card');
+      let found = false;
+      cards.forEach(c => {
+        if (c.getAttribute('data-key').toLowerCase() === decoded.toLowerCase()) {
+          // mostrar solo esa
+          cards.forEach(x => x.style.display = 'none');
+          c.style.display = 'block';
+          found = true;
+        } else {
+          c.style.display = 'none';
+        }
+      });
+      if (!found) {
+        // si no coincide, mostrar todas
+        cards.forEach(x => x.style.display = 'block');
+      }
+    })();
+  </script>
+</body>
+</html>
