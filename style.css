@@ -42,6 +42,7 @@ body {
   border-radius: 8px;
   box-shadow: 0 2px 10px rgba(0,0,0,0.1);
   overflow-y: auto;
+
 }
 
 .control-panel {
@@ -233,8 +234,8 @@ body {
   border-radius: 8px;
   box-shadow: 0 2px 10px rgba(0,0,0,0.1);
   padding: 1.5rem;
-  max-height: 200px;
-  overflow-y: auto;
+  /* max-height: 200px; */
+  /* overflow-y: auto; */
 }
 
 .recommendations-panel h2 {
@@ -363,5 +364,103 @@ body {
     bottom: auto;
     right: auto;
     margin-top: 1rem;
+  }
+}
+
+.menu-toggle {
+  display: none;
+  position: fixed;
+  left: 1rem;
+  /* top: 50%; */
+  /* transform: translateY(-50%); */
+  width: 44px;
+  height: 44px;
+  border-radius: 8px;
+  background: #2c553075;
+  border: 2px solid #2c553017;
+  color: white;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 1200;
+  backdrop-filter: blur(4px);
+}
+.menu-toggle .hamburger {
+  display: block;
+  width: 20px;
+  height: 2px;
+  background: white;
+  position: relative;
+}
+.menu-toggle .hamburger::before,
+.menu-toggle .hamburger::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  width: 20px;
+  height: 2px;
+  background: white;
+}
+.menu-toggle .hamburger::before { top: -6px; }
+.menu-toggle .hamburger::after  { top: 6px; }
+
+/* Backdrop para el sidebar */
+.sidebar-backdrop {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.35);
+  z-index: 1100;
+  transition: opacity 0.25s ease;
+  opacity: 0;
+  pointer-events: none;
+}
+.sidebar-backdrop.visible {
+  display: block;
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* Mobile: sidebar off-canvas */
+@media (max-width: 768px) {
+  .menu-toggle { display: flex; }
+
+  .main-container {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto 1fr auto;
+    padding-top: 1rem;
+  }
+
+  .sidebar {
+    position: fixed;
+    left: 0;
+    top: 72px; /* espacio para el header */
+    width: 280px;
+    height: calc(100vh - 72px);
+    transform: translateX(-110%);
+    transition: transform 0.28s ease;
+    z-index: 1150;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.2);
+    border-radius: 0 12px 12px 0;
+    overflow-y: auto;
+    background: white;
+  }
+
+  .sidebar.open {
+    transform: translateX(0);
+  }
+
+  /* Ajuste visual del header para centrar título con el botón */
+  .header {
+    padding: 1rem 2rem;
+  }
+  .header h1 {
+    margin-left: 32px; /* evita solapamiento con el botón */
+  }
+
+  /* Asegura que el mapa ocupe el alto correcto cuando sidebar está cerrado */
+  .map-container {
+    margin-left: 0;
+    height: calc(100vh - 72px);
   }
 }

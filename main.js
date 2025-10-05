@@ -1,5 +1,18 @@
 // Datos simulados de ciudades
 const cityData = {
+  valencia: {
+    name: "Valencia, España",
+    center: [39.4699, -0.3763],
+    zoom: 12,
+    temperature: 29.0,
+    vegetation: 22,
+    airQuality: "Moderada",
+    zones: [
+      { lat: 39.4705, lng: -0.3760, temp: 31, vegetation: 14, population: 8400, airQuality: 86 },
+      { lat: 39.4620, lng: -0.3750, temp: 28, vegetation: 30, population: 7200, airQuality: 74 },
+      { lat: 39.4780, lng: -0.3880, temp: 30, vegetation: 18, population: 9600, airQuality: 90 }
+    ]
+  },
   madrid: {
     name: "Madrid, España",
     center: [40.4168, -3.7038],
@@ -72,7 +85,7 @@ const cityData = {
 class UrbanTreePlanner {
   constructor() {
     this.map = null;
-    this.currentCity = 'madrid';
+    this.currentCity = 'valencia';
     this.layers = {
       temperature: null,
       vegetation: null,
@@ -376,7 +389,7 @@ class UrbanTreePlanner {
           <h4>Zona ${index + 1} - Prioridad ${rec.priority === 'high' ? 'Alta' : rec.priority === 'medium' ? 'Media' : 'Baja'}</h4>
           <p><strong>Puntuación:</strong> ${rec.score}/100</p>
           <p><strong>Razones:</strong> ${rec.reason}</p>
-          <p><strong>Especies recomendadas:</strong> ${this.getRecommendedSpecies(rec.zone)}</p>
+          <p><strong>Estrategia Recomendada:</strong> ${this.getRecommendedSpecies(rec.zone)}</p>
         </div>
       `;
     });
@@ -388,7 +401,7 @@ class UrbanTreePlanner {
     const species = [];
     
     if (zone.temp > 30) {
-      species.push('Jacaranda', 'Ceiba');
+      species.push('Jardin Vertical', 'Ceiba');
     } else if (zone.temp > 25) {
       species.push('Roble', 'Arce');
     } else {
@@ -529,3 +542,35 @@ class UrbanTreePlanner {
 document.addEventListener('DOMContentLoaded', () => {
   new UrbanTreePlanner();
 });
+
+    (function(){
+      const toggle = document.getElementById('menu-toggle');
+      const sidebar = document.querySelector('.sidebar');
+      const backdrop = document.getElementById('sidebar-backdrop');
+
+      if (!toggle || !sidebar || !backdrop) return;
+
+      function openSidebar(){
+        sidebar.classList.add('open');
+        backdrop.classList.add('visible');
+        document.body.style.overflow = 'hidden';
+      }
+      function closeSidebar(){
+        sidebar.classList.remove('open');
+        backdrop.classList.remove('visible');
+        document.body.style.overflow = '';
+      }
+
+      toggle.addEventListener('click', (e) => {
+        if (sidebar.classList.contains('open')) closeSidebar();
+        else openSidebar();
+      });
+
+      backdrop.addEventListener('click', closeSidebar);
+
+      // Cerrar al cambiar de ciudad o al iniciar análisis (mejora UX)
+      const citySelect = document.getElementById('city-select');
+      const analyzeBtn = document.getElementById('analyze-btn');
+      if (citySelect) citySelect.addEventListener('change', closeSidebar);
+      if (analyzeBtn) analyzeBtn.addEventListener('click', closeSidebar);
+    })();

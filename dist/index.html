@@ -5,16 +5,14 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Sistema de Planificación de Árboles Urbanos</title>
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-  <link rel="stylesheet" href="style.css">
+  
+  <script type="module" crossorigin src="/assets/index-21c17751.js"></script>
+  <link rel="stylesheet" href="/assets/index-201b3b6d.css">
 </head>
 <body>
   <div id="app">
     <header class="header">
-      <button id="menu-toggle" class="menu-toggle" aria-label="Abrir menú">
-        <span class="hamburger" aria-hidden="true"></span>
-      </button>
-
-      <h1>VitaCool</h1>
+      <h1>Sistema de Planificación de Árboles Urbanos</h1>
       <p>Optimización de plantación basada en datos satelitales</p>
     </header>
 
@@ -26,15 +24,13 @@
           <div class="city-selector">
             <label for="city-select">Seleccionar Ciudad:</label>
             <select id="city-select">
-              <option value="valencia">Valencia, España</option>
-                <option value="madrid">Madrid, España</option>
-                <option value="barcelona">Barcelona, España</option>
-                <option value="bogota">Bogotá, Colombia</option>
-                <option value="mexico">Ciudad de México</option>
-                <option value="lima">Lima, Perú</option>
-                
-              </select>
-            </div>
+              <option value="madrid">Madrid, España</option>
+              <option value="barcelona">Barcelona, España</option>
+              <option value="bogota">Bogotá, Colombia</option>
+              <option value="mexico">Ciudad de México</option>
+              <option value="lima">Lima, Perú</option>
+            </select>
+          </div>
 
           <div class="data-layers">
             <h3>Capas de Datos</h3>
@@ -112,7 +108,7 @@
       <section class="recommendations-panel">
         <h2>Recomendaciones de Plantación</h2>
         <div id="recommendations-content">
-          <p>Selecciona en el menú "Analizar Zona Óptima" para obtener recomendaciones específicas.</p>
+          <p>Selecciona "Analizar Zona Óptima" para obtener recomendaciones específicas.</p>
         </div>
       </section>
     </main>
@@ -127,12 +123,6 @@
   </div>
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-  <script type="module" src="main.js"></script>
-<div id="sidebar-backdrop" class="sidebar-backdrop" aria-hidden="true"></div>
-
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-  <script type="module" src="main.js"></script>
-
-
+  
 </body>
 </html>
